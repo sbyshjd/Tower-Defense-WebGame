@@ -1,3 +1,16 @@
+//create the map grid
+for(let j = 0; j<9;j++) {
+    for(let i = 0;i<18;i++) {
+        let cell = document.createElement('div');
+        cell.classList.add('cell');
+        cell.classList.add('no-pointer');
+        mapGrip.appendChild(cell);
+    }
+}
+
+
+
+
 let canvas = document.getElementById('canvas');
 
 //set canvas size
@@ -52,15 +65,15 @@ function renderMap() {
 //draw the enemies
 
 class Enemy {
-    constructor(x,y,radius,speed){
+    constructor(x,y,radius){
         this.x = x;
         this.y = y;
         this.radius = radius;
-        this.speed = speed;
+        this.speed = 1;
         this.vx ;
         this.vy ;
-        this.health = 40;
-        this.reward = 20;
+        this.health = 30+game.round*12;
+        this.reward = 2;
     }
     draw() {
         ctx.beginPath()
@@ -71,22 +84,25 @@ class Enemy {
     }
     moveMent() {
         this.draw();
-        for (let i =0; i<pathPointsArr.length-1; i++) {
-            if(this.x === pathPointsArr[i].x && this.y === pathPointsArr[i].y ) {
-                let dX = pathPointsArr[i+1].x-pathPointsArr[i].x;
-                let dY = pathPointsArr[i+1].y-pathPointsArr[i].y;
-                if(dX === 0) {
-                    this.vx = 0;
-                    this.vy = dY/Math.abs(dY) * this.speed;
-                }
-                if(dY === 0) {
-                    this.vx = dX/Math.abs(dX) * this.speed;
-                    this.vy = 0;
+        if(game.pause === false) {
+            for (let i =0; i<pathPointsArr.length-1; i++) {
+                if(this.x === pathPointsArr[i].x && this.y === pathPointsArr[i].y ) {
+                    let dX = pathPointsArr[i+1].x-pathPointsArr[i].x;
+                    let dY = pathPointsArr[i+1].y-pathPointsArr[i].y;
+                    if(dX === 0) {
+                        this.vx = 0;
+                        this.vy = dY/Math.abs(dY) * this.speed;
+                    }
+                    if(dY === 0) {
+                        this.vx = dX/Math.abs(dX) * this.speed;
+                        this.vy = 0;
+                    }
                 }
             }
+            this.x += this.vx;
+            this.y += this.vy;
         }
-        this.x += this.vx;
-        this.y += this.vy;
+
     }
     
 }
@@ -98,19 +114,19 @@ class Bullet {
         this.type = type;
         switch(type) {
             case 'cannon':
-                this.speed = 3;
+                this.speed = 5;
                 this.radius = 10;
-                this.damage = 5;
+                this.damage = 8;
             break;
             case 'laser':
-                this.speed = 4;
+                this.speed = 6;
                 // this.radius = 1;
-                this.damage = 10;
+                this.damage = 15;
             break;
             case 'missile':
-                this.speed = 1;
+                this.speed = 2;
                 this.radius = 15;
-                this.damage = 15;
+                this.damage = 30;
             break;
         }
         this.target;
@@ -164,12 +180,15 @@ class Tower {
         switch(type) {
             case 'cannon':
                 this.attackRange = 200;
+                this.price = 10;
                 break;
             case 'laser':
                 this.attackRange = 100;
+                this.price = 20;
                 break;
             case 'missile':
-                this.attackRange = 1000;
+                this.attackRange = 400;
+                this.price = 30;
                 break;
         }
     }
@@ -209,23 +228,32 @@ class Tower {
 
     }
 
-    loadBullet() {
+    loadBullet(secondsPass) {
         if(this.target) {
             let dis = Math.sqrt((this.x-this.target.x)*(this.x-this.target.x) + (this.y-this.target.y)*(this.y-this.target.y));
             let bullet = null;
             if(dis < this.attackRange) {
                 switch(this.type) {
                     case 'cannon':
-                        bullet = new Bullet(this.x,this.y,'cannon')
-                        this.bulletArray.push(bullet)
+                        if(secondsPass%1 === 0 ) {
+                            bullet = new Bullet(this.x,this.y,'cannon')
+                            // basicShoot.play();
+                            this.bulletArray.push(bullet)
+                        }
                     break;
                     case 'laser':
-                        bullet = new Bullet(this.x,this.y,'laser')
-                        this.bulletArray.push(bullet)
+                        if(secondsPass%1 === 0 ) {
+                            // megaShoot.play();
+                            bullet = new Bullet(this.x,this.y,'laser')
+                            this.bulletArray.push(bullet)
+                        }
                     break;
                     case 'missile':
-                        bullet = new Bullet(this.x,this.y,'missile')
-                        this.bulletArray.push(bullet)
+                        if(secondsPass%3 === 0 ) {
+                            // megaShoot.play();
+                            bullet = new Bullet(this.x,this.y,'missile')
+                            this.bulletArray.push(bullet)
+                        }
                     break;
 
                 }
@@ -246,12 +274,13 @@ class Tower {
                                 ele.target = ele.target;
                             }
                             ele.draw();
-                            let disX = ele.target.x-this.x;
-                            let disY = ele.target.y-this.y;
-                            ele.x += ele.speed/Math.sqrt(disX*disX+disY*disY) * disX ;
-                            ele.y += ele.speed/Math.sqrt(disX*disX+disY*disY) * disY ;
-                            
-                
+                            if(game.pause === false) {
+                                let disX = ele.target.x-this.x;
+                                let disY = ele.target.y-this.y;
+                                ele.x += ele.speed/Math.sqrt(disX*disX+disY*disY) * disX ;
+                                ele.y += ele.speed/Math.sqrt(disX*disX+disY*disY) * disY ;
+                            }
+
                 //the bullet out of the canvas and disappear
                             if(ele.x<0 || ele.x>canvas.width || ele.y<0 || ele.y>canvas.height) {
                                 let j = this.bulletArray.indexOf(ele)
@@ -267,7 +296,7 @@ class Tower {
                                 }
                             })
                         })
-        } else if(this.type ==='laser'&& this.target) {
+        } else if(this.type ==='laser'&& this.target && game.pause === false) {
     //this is for the the laser fire bullet and damage calculate 
             this.bulletArray.forEach(ele => {
                 ele.drawLaser(this.target.x,this.target.y)
@@ -282,89 +311,145 @@ class Tower {
     
 }
 
-//create tower;
-let cannonArr = [];
-let laserArr = [];
-let missileArr = [];
-
-//create the enemy army
-let enemyArr = [];
-
 function updateEnemyArr(enemyArr) {
     enemyArr.forEach(e => {
         let index = enemyArr.indexOf(e)
         if(e.health <= 0) {
             enemyArr.splice(index,1);
+            //update the game money
             game.money += e.reward
         } 
         if(e.x === canvas.width) {
             enemyArr.splice(index,1);
             game.life-=1;
-            //update the life icon
-            gameLife.removeChild(gameLife.lastChild);
+
         }
     })
 }
-function buildArmy() {
-    let i = 0;
-    let setIntervalID = window.setInterval(()=>{
-        let enemy = new Enemy(0,225,15,0.5)
-        enemyArr.push(enemy)
-        i++
-        if(i===3) {
-            clearInterval(setIntervalID)
+
+    // buildArmy();
+
+function sendArmy(secondsPass) {
+    //snde the enemy every 10 seconds
+    if(game.round < (game.totalRound+1)) {
+        if(secondsPass % 15 === 0) {
+            game.sending = true;
+            game.round ++;
         }
-    },1500)
-} 
-buildArmy();
-//send the army
-setInterval(()=>{buildArmy()},10000)
+        //create the enemyarr for every round
+        if(game.round< (game.totalRound+1) && game.sending) {
+            if(secondsPass % 1 === 0) {
+                let enemy = new Enemy(0,225,15)
+                game.enemyArr.push(enemy)
+                game.enemyNum++
+                if(game.enemyNum === (game.round+3)) {
+                    game.enemyNum = 0;
+                    game.sending = false;
+                    return;
+                }
+            }
+        }
+    }
 
+}
 
+function  prepareTime (secondsPass) {
+    if(game.round < game.totalRound) {
+        timer.childNodes[1].innerHTML = game.roundTime
+        if(game.roundTime === 0) {
+            game.roundTime = 15;
+        }
+        if(secondsPass%1 === 0) {
+            game.roundTime -= 1;
+        }   
+    }
 
-
+}
 //load the bullets for tower
-setInterval(()=>{cannonArr.forEach(tower => {
-    tower.loadBullet()
-}
-)},1000)
-setInterval(()=>{laserArr.forEach(tower => {
-    tower.loadBullet()
-}
-)},500)
-setInterval(()=>{missileArr.forEach(tower => {
-    tower.loadBullet()
-}
-)},3000)
+// setInterval(()=>{cannonArr.forEach(tower => {
+//     tower.loadBullet()
+// }
+// )},1000)
+// setInterval(()=>{laserArr.forEach(tower => {
+//     tower.loadBullet()
+// }
+// )},500)
+// setInterval(()=>{missileArr.forEach(tower => {
+//     tower.loadBullet()
+// }
+// )},3000)
 
 
+function gameLoop(timeStamp) {
+//this s for the pause function to stop the total time in game;
+    if(game.run == true && game.pause === true ) {
+        oldTimeStamp = timeStamp;
+    }
+    if(game.run === true && game.pause ===false) {
+        fps.i++
+        if(fps.i===60) {
+            fps.i=0
+        }
+        if(!oldTimeStamp) {
+            oldTimeStamp = timeStamp;
+        }
+        let secondsPass = (timeStamp - oldTimeStamp)/1000;
+        oldTimeStamp = timeStamp;
+        game.totalTime += secondsPass;
+        if(fps.i === 0) {
+            //this is the int-second in the game
+            game.totalTime = Math.round(game.totalTime);
+        }
+//in the game loop send the enemy;
+    
+            sendArmy(game.totalTime);
+            prepareTime(game.totalTime);
+        
+        
+        //load the bullet for each cannon tower
+        game.cannonArr.forEach(tower => { tower.loadBullet(game.totalTime) })
+        game.laserArr.forEach(tower => {  tower.loadBullet(game.totalTime) })
+        game.missileArr.forEach(tower => { tower.loadBullet(game.totalTime) })
 
-function animation() {
+     }
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     game.gameUpdate();
+    game.towerMoneyCheck();
     renderMap();
-    cannonArr.forEach(tower=>{
-        tower.draw()
-        tower.chooseTarget(enemyArr)
-        tower.fire(enemyArr)
+    game.cannonArr.forEach(tower=>{
+        // tower.draw()
+        tower.chooseTarget(game.enemyArr)
+        tower.fire(game.enemyArr)
     });
-    laserArr.forEach(tower=>{
-        tower.draw()
-        tower.chooseTarget(enemyArr)
-        tower.fire(enemyArr)
+    game.laserArr.forEach(tower=>{
+        // tower.draw()
+        tower.chooseTarget(game.enemyArr)
+        tower.fire(game.enemyArr)
 
     });
-    missileArr.forEach(tower=>{
-        tower.draw()
-        tower.chooseTarget(enemyArr)
-        tower.fire(enemyArr)
+    game.missileArr.forEach(tower=>{
+        // tower.draw()
+        tower.chooseTarget(game.enemyArr)
+        tower.fire(game.enemyArr)
     });
-    updateEnemyArr(enemyArr);
-    enemyArr.forEach(e=> {
-        e.moveMent();
-    })
-    window.requestAnimationFrame(animation);
+    updateEnemyArr(game.enemyArr);
+    if(game.run === true ) {
+        game.enemyArr.forEach(e=> { e.moveMent();})
+    }
 
+    let animation = window.requestAnimationFrame(gameLoop);
+
+    // window.cancelAnimationFrame(animation)
+    
 }
-animation();
+
+    // window.requestAnimationFrame(gameLoop);
+
+    
+
+// page.addEventListener('load',startGameLoop,false)
+// function startGameLoop(e) {
+    gameLoop();
+// }
+
 
